@@ -19,12 +19,14 @@
         <div class="col-md-8">
             <h1 class="display-5 fw-bold mb-3">{{ genre.name }}</h1>
             <div class="mb-4">
+                {% if user.profile.is_admin %}
                 <a href="{% url 'genre-update' genre.pk %}" class="btn btn-outline-warning me-2">
                     <i class="bi bi-pencil"></i> Изменить
                 </a>
                 <a href="{% url 'genre-delete' genre.pk %}" class="btn btn-outline-danger">
                     <i class="bi bi-trash"></i> Удалить
                 </a>
+                {% endif %}
                 <a href="{% url 'genre-list' %}" class="btn btn-secondary ms-2">
                     <i class="bi bi-arrow-left"></i> Назад к списку
                 </a>

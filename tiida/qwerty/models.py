@@ -1,23 +1,22 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Customer(models.Model):
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20)
-    address = models.TextField()
-    city = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-    registered_date = models.DateField()
-
-    class Meta:
-        db_table = 'customers'
-        verbose_name = 'Клиент'
-        verbose_name_plural = 'Клиенты'
+    name = models.CharField(max_length=100, verbose_name='Имя')
+    email = models.EmailField(verbose_name='Email')
+    address = models.CharField(max_length=200, null=True, blank=True, verbose_name='Адрес')
+    phone = models.CharField(max_length=20, verbose_name='Телефон')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return self.name
+
+    class Meta:
+        verbose_name = 'Клиент'
+        verbose_name_plural = 'Клиенты'
 
 class Genre(models.Model):
     name = models.CharField(max_length=100)
@@ -189,3 +188,28 @@ class Inventory(models.Model):
         db_table = 'inventory'
         verbose_name = 'Склад'
         verbose_name_plural = 'Склад'
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = (
+        ('user', 'Пользователь'),
+        ('admin', 'Администратор'),
+    )
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+    
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()

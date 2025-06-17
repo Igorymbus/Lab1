@@ -2,14 +2,14 @@ from django.contrib import admin
 from .models import (
     Customer, Genre, Label, Artist, Album, AlbumArtist, Track,
     Order, OrderItem, Employee, Sale, Payment, Supplier,
-    Shipment, Inventory
+    Shipment, Inventory, UserProfile
 )
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'city', 'country')
-    search_fields = ('first_name', 'last_name', 'email')
-    list_filter = ('country', 'city')
+    list_display = ('name', 'email', 'phone', 'address', 'created_at')
+    search_fields = ('name', 'email', 'phone')
+    list_filter = ()
 
 @admin.register(Genre)
 class GenreAdmin(admin.ModelAdmin):
@@ -90,3 +90,9 @@ class InventoryAdmin(admin.ModelAdmin):
     list_display = ('album', 'stock_quantity', 'last_updated')
     list_filter = ('last_updated',)
     search_fields = ('album__title',)
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'role')
+    list_filter = ('role',)
+    search_fields = ('user__username',)

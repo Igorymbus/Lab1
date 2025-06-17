@@ -62,12 +62,14 @@
                         <a href="{% url 'album-detail' album.pk %}" class="btn btn-outline-primary">
                             <i class="bi bi-eye"></i> Просмотр
                         </a>
+                        {% if user.profile.is_admin %}
                         <a href="{% url 'album-update' album.pk %}" class="btn btn-outline-warning">
                             <i class="bi bi-pencil"></i> Изменить
                         </a>
                         <a href="{% url 'album-delete' album.pk %}" class="btn btn-outline-danger">
                             <i class="bi bi-trash"></i> Удалить
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -71,12 +71,14 @@
                 <div class="card-body">
                     <h5 class="card-title">Действия</h5>
                     <div class="d-grid gap-2">
+                        {% if user.profile.is_admin %}
                         <a href="{% url 'album-update' album.pk %}" class="btn btn-warning">
                             <i class="bi bi-pencil"></i> Изменить
                         </a>
                         <a href="{% url 'album-delete' album.pk %}" class="btn btn-danger">
                             <i class="bi bi-trash"></i> Удалить
                         </a>
+                        {% endif %}
                         <a href="{% url 'album-list' %}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Назад к списку
                         </a>

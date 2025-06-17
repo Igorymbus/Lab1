@@ -4,13 +4,49 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from .models import Album, Artist, Genre, Track, Label, AlbumArtist
+from .decorators import admin_required
+from .forms import AlbumForm, ArtistForm, GenreForm
 
+class RegisterView(CreateView):
+    form_class = UserCreationForm
+    template_name = 'qwerty/register.html'
+    success_url = reverse_lazy('info')
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('info')
+        return super().get(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        login(self.request, form.save())
+        messages.success(self.request, 'Регистрация успешно завершена!')
+        return response
+
+class CustomLoginView(LoginView):
+    form_class = AuthenticationForm
+    template_name = 'qwerty/login.html'
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        return reverse_lazy('info')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Вы успешно вошли в систему!')
+        return super().form_valid(form)
+
+@login_required
 def info(request):
     albums = Album.objects.all().order_by('-id')[:6]  # Получаем 6 последних альбомов
     return render(request, 'qwerty/info.html', {'albums': albums})
 
-class AlbumListView(ListView):
+# Альбомы
+class AlbumListView(LoginRequiredMixin, ListView):
     model = Album
     template_name = 'qwerty/album_list.html'
     context_object_name = 'albums'
@@ -37,7 +73,7 @@ class AlbumListView(ListView):
         context['artists'] = Artist.objects.all()
         return context
 
-class AlbumDetailView(DetailView):
+class AlbumDetailView(LoginRequiredMixin, DetailView):
     model = Album
     template_name = 'qwerty/album_detail.html'
     context_object_name = 'album'
@@ -47,48 +83,48 @@ class AlbumDetailView(DetailView):
         context['tracks'] = self.object.track_set.all()
         return context
 
-class AlbumCreateView(SuccessMessageMixin, CreateView):
-    model = Album
-    template_name = 'qwerty/album_form.html'
-    fields = ['title', 'release_date', 'price', 'label', 'genre', 'artists', 'cover_image']
-    success_url = reverse_lazy('album-list')
-    success_message = "Альбом '%(title)s' был успешно создан"
+@admin_required
+def album_create(request):
+    if request.method == 'POST':
+        form = AlbumForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Альбом успешно создан!')
+            return redirect('album-list')
+    else:
+        form = AlbumForm()
+    return render(request, 'qwerty/album_form.html', {'form': form, 'title': 'Создать альбом'})
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
+@admin_required
+def album_update(request, pk):
+    album = get_object_or_404(Album, pk=pk)
+    if request.method == 'POST':
+        form = AlbumForm(request.POST, request.FILES, instance=album)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Альбом успешно обновлен!')
+            return redirect('album-list')
+    else:
+        form = AlbumForm(instance=album)
+    return render(request, 'qwerty/album_form.html', {'form': form, 'title': 'Редактировать альбом'})
 
-class AlbumUpdateView(SuccessMessageMixin, UpdateView):
-    model = Album
-    template_name = 'qwerty/album_form.html'
-    fields = ['title', 'release_date', 'price', 'label', 'genre', 'artists', 'cover_image']
-    success_url = reverse_lazy('album-list')
-    success_message = "Альбом '%(title)s' был успешно обновлен"
+@admin_required
+def album_delete(request, pk):
+    album = get_object_or_404(Album, pk=pk)
+    if request.method == 'POST':
+        album.delete()
+        messages.success(request, 'Альбом успешно удален!')
+        return redirect('album-list')
+    return render(request, 'qwerty/album_confirm_delete.html', {'album': album})
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
-
-class AlbumDeleteView(SuccessMessageMixin, DeleteView):
-    model = Album
-    template_name = 'qwerty/album_confirm_delete.html'
-    success_url = reverse_lazy('album-list')
-    success_message = "Альбом был успешно удален"
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, self.success_message)
-        return super().delete(request, *args, **kwargs)
-
-# Аналогичные представления для исполнителей
-class ArtistListView(ListView):
+# Исполнители
+class ArtistListView(LoginRequiredMixin, ListView):
     model = Artist
     template_name = 'qwerty/artist_list.html'
     context_object_name = 'artists'
     ordering = ['name']
 
-class ArtistDetailView(DetailView):
+class ArtistDetailView(LoginRequiredMixin, DetailView):
     model = Artist
     template_name = 'qwerty/artist_detail.html'
     context_object_name = 'artist'
@@ -98,48 +134,48 @@ class ArtistDetailView(DetailView):
         context['albums'] = self.object.album_set.all()
         return context
 
-class ArtistCreateView(SuccessMessageMixin, CreateView):
-    model = Artist
-    template_name = 'qwerty/artist_form.html'
-    fields = ['name', 'country', 'image']
-    success_url = reverse_lazy('artist-list')
-    success_message = "Исполнитель '%(name)s' был успешно создан"
+@admin_required
+def artist_create(request):
+    if request.method == 'POST':
+        form = ArtistForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Исполнитель успешно создан!')
+            return redirect('artist-list')
+    else:
+        form = ArtistForm()
+    return render(request, 'qwerty/artist_form.html', {'form': form, 'title': 'Создать исполнителя'})
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
+@admin_required
+def artist_update(request, pk):
+    artist = get_object_or_404(Artist, pk=pk)
+    if request.method == 'POST':
+        form = ArtistForm(request.POST, instance=artist)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Исполнитель успешно обновлен!')
+            return redirect('artist-list')
+    else:
+        form = ArtistForm(instance=artist)
+    return render(request, 'qwerty/artist_form.html', {'form': form, 'title': 'Редактировать исполнителя'})
 
-class ArtistUpdateView(SuccessMessageMixin, UpdateView):
-    model = Artist
-    template_name = 'qwerty/artist_form.html'
-    fields = ['name', 'country', 'image']
-    success_url = reverse_lazy('artist-list')
-    success_message = "Исполнитель '%(name)s' был успешно обновлен"
+@admin_required
+def artist_delete(request, pk):
+    artist = get_object_or_404(Artist, pk=pk)
+    if request.method == 'POST':
+        artist.delete()
+        messages.success(request, 'Исполнитель успешно удален!')
+        return redirect('artist-list')
+    return render(request, 'qwerty/artist_confirm_delete.html', {'artist': artist})
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
-
-class ArtistDeleteView(SuccessMessageMixin, DeleteView):
-    model = Artist
-    template_name = 'qwerty/artist_confirm_delete.html'
-    success_url = reverse_lazy('artist-list')
-    success_message = "Исполнитель был успешно удален"
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, self.success_message)
-        return super().delete(request, *args, **kwargs)
-
-# Аналогичные представления для жанров
-class GenreListView(ListView):
+# Жанры
+class GenreListView(LoginRequiredMixin, ListView):
     model = Genre
     template_name = 'qwerty/genre_list.html'
     context_object_name = 'genres'
     ordering = ['name']
 
-class GenreDetailView(DetailView):
+class GenreDetailView(LoginRequiredMixin, DetailView):
     model = Genre
     template_name = 'qwerty/genre_detail.html'
     context_object_name = 'genre'
@@ -149,36 +185,36 @@ class GenreDetailView(DetailView):
         context['albums'] = self.object.album_set.all()
         return context
 
-class GenreCreateView(SuccessMessageMixin, CreateView):
-    model = Genre
-    template_name = 'qwerty/genre_form.html'
-    fields = ['name', 'image']
-    success_url = reverse_lazy('genre-list')
-    success_message = "Жанр '%(name)s' был успешно создан"
+@admin_required
+def genre_create(request):
+    if request.method == 'POST':
+        form = GenreForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Жанр успешно создан!')
+            return redirect('genre-list')
+    else:
+        form = GenreForm()
+    return render(request, 'qwerty/genre_form.html', {'form': form, 'title': 'Создать жанр'})
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
+@admin_required
+def genre_update(request, pk):
+    genre = get_object_or_404(Genre, pk=pk)
+    if request.method == 'POST':
+        form = GenreForm(request.POST, instance=genre)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Жанр успешно обновлен!')
+            return redirect('genre-list')
+    else:
+        form = GenreForm(instance=genre)
+    return render(request, 'qwerty/genre_form.html', {'form': form, 'title': 'Редактировать жанр'})
 
-class GenreUpdateView(SuccessMessageMixin, UpdateView):
-    model = Genre
-    template_name = 'qwerty/genre_form.html'
-    fields = ['name', 'image']
-    success_url = reverse_lazy('genre-list')
-    success_message = "Жанр '%(name)s' был успешно обновлен"
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, self.success_message % form.instance.__dict__)
-        return response
-
-class GenreDeleteView(SuccessMessageMixin, DeleteView):
-    model = Genre
-    template_name = 'qwerty/genre_confirm_delete.html'
-    success_url = reverse_lazy('genre-list')
-    success_message = "Жанр был успешно удален"
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, self.success_message)
-        return super().delete(request, *args, **kwargs)
+@admin_required
+def genre_delete(request, pk):
+    genre = get_object_or_404(Genre, pk=pk)
+    if request.method == 'POST':
+        genre.delete()
+        messages.success(request, 'Жанр успешно удален!')
+        return redirect('genre-list')
+    return render(request, 'qwerty/genre_confirm_delete.html', {'genre': genre})

@@ -212,6 +212,7 @@
 <body>
     <div class="cd-bg"></div>
     <!-- Header -->
+    {% if user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="{% url 'info' %}">Музыкальный магазин</a>
@@ -233,48 +234,57 @@
                         <a class="nav-link" href="{% url 'genre-list' %}">Жанры</a>
                     </li>
                 </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
+    {% endif %}
 
     <!-- Main Content -->
     <main>
+        {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
+    {% if user.is_authenticated %}
     <footer class="footer mt-auto">
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4 mb-md-0">
                     <h5 class="fw-bold mb-3"><i class="bi bi-music-note-beamed"></i> О нас</h5>
-                    <p>Музыкальный магазин — это место, где вы найдёте лучшие CD-диски и винил по отличным ценам. Мы любим музыку и делаем всё, чтобы вы тоже её полюбили!</p>
+                    <p>Ваш надежный источник качественной музыки</p>
                 </div>
                 <div class="col-md-4 mb-4 mb-md-0">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-telephone"></i> Контакты</h5>
-                    <ul class="list-unstyled mb-0">
-                        <li><i class="bi bi-geo-alt"></i> г. Москва, ул. Примерная, 123</li>
-                        <li><i class="bi bi-telephone"></i> <a href="tel:+79991234567" class="text-decoration-none text-dark">+7 (999) 123-45-67</a></li>
-                        <li><i class="bi bi-envelope"></i> <a href="mailto:info@musicstore.ru" class="text-decoration-none text-dark">info@musicstore.ru</a></li>
-                    </ul>
+                    <h5 class="fw-bold mb-3">Контакты</h5>
+                    <p>Email: info@musicstore.com</p>
+                    <p>Телефон: +7 (999) 123-45-67</p>
                 </div>
                 <div class="col-md-4">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-share"></i> Мы в соцсетях</h5>
-                    <div class="social-links mb-2">
-                        <a href="#" class="text-dark me-2"><i class="bi bi-facebook"></i></a>
-                        <a href="#" class="text-dark me-2"><i class="bi bi-instagram"></i></a>
-                        <a href="#" class="text-dark me-2"><i class="bi bi-twitter"></i></a>
-                        <a href="#" class="text-dark"><i class="bi bi-youtube"></i></a>
+                    <h5 class="fw-bold mb-3">Мы в соцсетях</h5>
+                    <div class="social-links">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-instagram"></i></a>
+                        <a href="#"><i class="bi bi-twitter"></i></a>
                     </div>
-                    <small class="text-muted">Подписывайтесь на нас, чтобы не пропустить новинки!</small>
                 </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <p class="mb-0">&copy; 2024 Музыкальный магазин. Все права защищены.<br>Сайт не является публичной офертой. Вся информация носит справочный характер.</p>
             </div>
         </div>
     </footer>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
